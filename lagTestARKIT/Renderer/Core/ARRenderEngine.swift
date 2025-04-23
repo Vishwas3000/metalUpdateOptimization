@@ -256,7 +256,6 @@ class ARRenderingEngine {
         anchorUniformBufferOffset = kAlignedInstanceUniformsSize * uniformBufferIndex
     }
     
-    var currentPVMatrix: matrix_float4x4 = matrix_identity_float4x4
     private func updateSharedUniforms(frame: ARFrame) {
         let uniforms = sharedUniformBuffer.contents()
             .advanced(by: sharedUniformBufferOffset)
@@ -269,7 +268,6 @@ class ARRenderingEngine {
             zNear: 0.001,
             zFar: 1000
         )
-        currentPVMatrix = simd_mul(projectionMatrix, viewmatrix)
         uniforms.pointee.viewMatrix = viewmatrix
 
         uniforms.pointee.projectionMatrix = projectionMatrix

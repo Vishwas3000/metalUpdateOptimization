@@ -48,7 +48,7 @@ class ARMetalView: MTKView, RenderDestinationProvider {
         self.backgroundColor = .blue
         
         // Setup rendering engine
-        renderingEngine = ARRenderingEngine(session: session, device: device, renderDestination: self)
+        renderingEngine = ARRenderingEngine(session: session, device: device, renderDestination: self, viewportSize: self.bounds.size)
         
         // Configure delegate for draw calls
         self.delegate = self

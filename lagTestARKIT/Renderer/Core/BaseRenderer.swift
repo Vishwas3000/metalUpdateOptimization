@@ -187,22 +187,30 @@ class BaseRenderer: Renderer {
 
 /// Manages render passes between multiple renderers
 class RenderCoordinator {
+    // Metal core objects
     private let device: MTLDevice
     private let commandQueue: MTLCommandQueue
-    private var renderers: [Renderer] = []
+    
+    // Renderer management
+    private(set) var renderers: [Renderer] = []
     
     // Shared buffers
     private var sharedUniformBuffer: MTLBuffer
     private var instanceUniformBuffer: MTLBuffer
     private var uniformBufferIndex: Int = 0
     
+    // Buffer configuration
     private let kMaxBuffersInFlight = 3
     private let kAlignedSharedUniformsSize: Int
     private let kAlignedInstanceUniformsSize: Int
     private let kMaxAnchorInstanceCount = 64
+    private let viewportSize: CGSize
+        
+    // MARK: - Initialization
     
-    init(device: MTLDevice) {
+    init(device: MTLDevice, viewportSize: CGSize) {
         self.device = device
+        self.viewportSize = viewportSize
         
         guard let queue = device.makeCommandQueue() else {
             fatalError("Failed to create command queue")
@@ -229,25 +237,41 @@ class RenderCoordinator {
         instanceUniformBuffer.label = "InstanceUniformBuffer"
     }
     
+    // MARK: - Renderer Management
+    
     func addRenderer(_ renderer: Renderer) {
-        renderers.append(renderer)
+        // Insert renderer in the sorted position based on renderOrder
+        var insertIndex = renderers.count
+        for (index, existingRenderer) in renderers.enumerated() {
+            if existingRenderer.renderOrder > renderer.renderOrder {
+                insertIndex = index
+                break
+            }
+        }
+        
+        renderers.insert(renderer, at: insertIndex)
     }
     
     func removeRenderer(id: String) {
         renderers.removeAll { $0.id == id }
     }
     
+    // MARK: - Frame Update & Drawing
+    
     func update(frame: ARFrame) {
         // Update buffer offsets for the current frame
         updateBufferState()
+        
+        // Update shared uniforms
+        updateSharedUniforms(frame: frame, viewportSize: viewportSize)
+        
+        // Update instance uniforms for anchors
+        updateAnchorUniforms(frame: frame)
         
         // Update all renderers
         for renderer in renderers where renderer.isEnabled {
             renderer.update(frame: frame)
         }
-        
-        // Update shared uniforms
-        updateSharedUniforms(frame: frame)
     }
     
     func draw(renderDestination: RenderDestinationProvider) {
@@ -267,9 +291,13 @@ class RenderCoordinator {
         
         // Draw with each renderer in order
         for renderer in renderers where renderer.isEnabled {
-            renderer.draw(renderEncoder: renderEncoder,
-                          uniformBuffer: sharedUniformBuffer,
-                          uniformBufferOffset: sharedUniformBufferOffset)
+            renderEncoder.pushDebugGroup(renderer.id)
+            renderer.draw(
+                renderEncoder: renderEncoder,
+                uniformBuffer: sharedUniformBuffer,
+                uniformBufferOffset: sharedUniformBufferOffset
+            )
+            renderEncoder.popDebugGroup()
         }
         
         renderEncoder.endEncoding()
@@ -284,7 +312,7 @@ class RenderCoordinator {
         }
     }
     
-    // MARK: - Private Methods
+    // MARK: - Buffer Management
     
     private var sharedUniformBufferOffset: Int = 0
     private var instanceUniformBufferOffset: Int = 0
@@ -296,18 +324,24 @@ class RenderCoordinator {
         instanceUniformBufferOffset = kAlignedInstanceUniformsSize * uniformBufferIndex
     }
     
-    private func updateSharedUniforms(frame: ARFrame) {
+    private func updateSharedUniforms(frame: ARFrame, viewportSize: CGSize) {
         let uniforms = sharedUniformBuffer.contents()
             .advanced(by: sharedUniformBufferOffset)
             .assumingMemoryBound(to: SharedUniforms.self)
         
         // Update view and projection matrices
-        uniforms.pointee.viewMatrix = frame.camera.viewMatrix(for: .portrait)
-        uniforms.pointee.projectionMatrix = frame.camera.projectionMatrix(for: .portrait,
-                                                                          viewportSize: CGSize(width: frame.camera.imageResolution.width,
-                                                                                              height: frame.camera.imageResolution.height),
-                                                                          zNear: 0.001,
-                                                                          zFar: 1000)
+        let viewMatrix = frame.camera.viewMatrix(for: .portrait)
+        let projectionMatrix = frame.camera.projectionMatrix(
+            for: .portrait,
+            viewportSize: viewportSize,
+            zNear: 0.001,
+            zFar: 1000
+        )
+        
+        uniforms.pointee.viewMatrix = viewMatrix
+        uniforms.pointee.projectionMatrix = projectionMatrix
+        
+        // Store current PV matrix for external use
         
         // Update lighting based on ARFrame light estimate
         var ambientIntensity: Float = 1.0
@@ -316,13 +350,37 @@ class RenderCoordinator {
             ambientIntensity = Float(lightEstimate.ambientIntensity) / 1000.0
         }
         
-        let ambientLightColor: vector_float3 = vector3(0.5, 0.5, 0.5)
+        let ambientLightColor: vector_float3 = vector_float3(0.5, 0.5, 0.5)
         uniforms.pointee.ambientLightColor = ambientLightColor * ambientIntensity
         
-        let directionalLightDirection = simd_normalize(vector3(0.0, 0.0, -1.0))
-//        uniforms.pointee.directionalLightDirection = directionalLightDirection
-        
-        let directionalLightColor: vector_float3 = vector3(0.6, 0.6, 0.6)
+        let directionalLightColor: vector_float3 = vector_float3(0.6, 0.6, 0.6)
         uniforms.pointee.directionalLightColor = directionalLightColor * ambientIntensity
+        
+        uniforms.pointee.materialShininess = 30
+    }
+    
+    private func updateAnchorUniforms(frame: ARFrame) {
+        let uniformBufferAddress = instanceUniformBuffer.contents()
+            .advanced(by: instanceUniformBufferOffset)
+            .assumingMemoryBound(to: InstanceUniforms.self)
+        
+        let anchorCount = min(frame.anchors.count, kMaxAnchorInstanceCount)
+        
+        var anchorOffset = 0
+        if anchorCount == kMaxAnchorInstanceCount {
+            anchorOffset = max(frame.anchors.count - kMaxAnchorInstanceCount, 0)
+        }
+        
+        for index in 0..<anchorCount {
+            let anchor = frame.anchors[index + anchorOffset]
+            
+            // Flip Z axis to convert from right-handed to left-handed coords
+            var coordinateSpaceTransform = matrix_identity_float4x4
+            coordinateSpaceTransform.columns.2.z = -1.0
+            
+            let modelMatrix = simd_mul(anchor.transform, coordinateSpaceTransform)
+            
+            uniformBufferAddress[index].modelMatrix = modelMatrix
+        }
     }
 }

@@ -11,6 +11,13 @@ import MetalKit
 import ARKit
 
 
+// Vertex structure for rectangle rendering
+struct RectangleVertex {
+    var position: SIMD3<Float>
+    var color: SIMD4<Float>
+}
+
+
 /// Renderer for drawing content on tracked images
 class ImageTrackingRenderer: BaseRenderer {
     // Tracked image data structure
@@ -258,15 +265,7 @@ class ImageTrackingRenderer: BaseRenderer {
             // Add slight offset to prevent z-fighting (move 1mm above the image)
             let zOffset: Float = 0.001
             
-            // Apply scale and z-offset
-            var scaleMatrix = matrix_identity_float4x4
-            scaleMatrix.columns.0.x = width * trackedImage.scale
-            scaleMatrix.columns.1.y = height * trackedImage.scale
-            scaleMatrix.columns.2.z = 1.0
-            scaleMatrix.columns.3.z = zOffset // Move slightly above the image
-            
-//            modelMatrix = matrix_multiply(modelMatrix, scaleMatrix)
-            
+
             // Flip Z axis to convert from right-handed to left-handed coords
             var coordinateSpaceTransform = matrix_identity_float4x4
             coordinateSpaceTransform.columns.2.z = -1.0
@@ -279,8 +278,18 @@ class ImageTrackingRenderer: BaseRenderer {
                 SIMD4<Float>(0, 0, 0, 1)
             )
             
+            
             modelMatrix = simd_mul(simd_mul(modelMatrix, rotationMatrix), coordinateSpaceTransform)
 
+            // Apply scale and z-offset
+            var scaleMatrix = matrix_identity_float4x4
+            scaleMatrix.columns.0.x = width * trackedImage.scale
+            scaleMatrix.columns.1.y = height * trackedImage.scale
+            scaleMatrix.columns.2.z = 1.0
+            scaleMatrix.columns.3.z = zOffset // Move slightly above the image
+            
+            modelMatrix = matrix_multiply(modelMatrix, scaleMatrix)
+            
             // Create instance uniforms structure for the model matrix
             var instanceUniforms = InstanceUniforms(modelMatrix: modelMatrix)
             
@@ -307,10 +316,4 @@ class ImageTrackingRenderer: BaseRenderer {
         
         renderEncoder.popDebugGroup()
     }
-}
-
-// Vertex structure for rectangle rendering
-struct RectangleVertex {
-    var position: SIMD3<Float>
-    var color: SIMD4<Float>
 }

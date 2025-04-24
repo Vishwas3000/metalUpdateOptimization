@@ -6,6 +6,10 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		6E313A912DBA3DF50062ABF0 /* FlamMetalKit in Frameworks */ = {isa = PBXBuildFile; productRef = 6E313A902DBA3DF50062ABF0 /* FlamMetalKit */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXFileReference section */
 		6E31398C2DB652E40062ABF0 /* lagTestARKIT.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = lagTestARKIT.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
@@ -36,6 +40,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				6E313A912DBA3DF50062ABF0 /* FlamMetalKit in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -46,6 +51,7 @@
 			isa = PBXGroup;
 			children = (
 				6E31398E2DB652E40062ABF0 /* lagTestARKIT */,
+				6E313A8F2DBA3DF50062ABF0 /* Frameworks */,
 				6E31398D2DB652E40062ABF0 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -56,6 +62,13 @@
 				6E31398C2DB652E40062ABF0 /* lagTestARKIT.app */,
 			);
 			name = Products;
+			sourceTree = "<group>";
+		};
+		6E313A8F2DBA3DF50062ABF0 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			name = Frameworks;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -78,6 +91,7 @@
 			);
 			name = lagTestARKIT;
 			packageProductDependencies = (
+				6E313A902DBA3DF50062ABF0 /* FlamMetalKit */,
 			);
 			productName = lagTestARKIT;
 			productReference = 6E31398C2DB652E40062ABF0 /* lagTestARKIT.app */;
@@ -108,6 +122,7 @@
 			mainGroup = 6E3139832DB652E40062ABF0;
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
+				6E313A692DBA3DBA0062ABF0 /* XCLocalSwiftPackageReference "../FlamMetalKit" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 6E31398D2DB652E40062ABF0 /* Products */;
@@ -337,6 +352,21 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCLocalSwiftPackageReference section */
+		6E313A692DBA3DBA0062ABF0 /* XCLocalSwiftPackageReference "../FlamMetalKit" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = ../FlamMetalKit;
+		};
+/* End XCLocalSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		6E313A902DBA3DF50062ABF0 /* FlamMetalKit */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 6E313A692DBA3DBA0062ABF0 /* XCLocalSwiftPackageReference "../FlamMetalKit" */;
+			productName = FlamMetalKit;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 6E3139842DB652E40062ABF0 /* Project object */;
 }

@@ -8,6 +8,7 @@ import UIKit
 import ARKit
 import MetalKit
 import SceneKit
+import FlamMetalKit
 
 class ARTrackingViewController: UIViewController, ARSessionDelegate, ARTrackingDelegate {
     
@@ -15,7 +16,7 @@ class ARTrackingViewController: UIViewController, ARSessionDelegate, ARTrackingD
     private var sceneView: ARSCNView!
     
     // Metal view for custom rendering (positioned on top of sceneView)
-    private var arMetalView: ARMetalView!
+    private var arMetalView: FlameMetalView!
     
     // AR session
     private let arSession = ARSession()
@@ -97,7 +98,7 @@ class ARTrackingViewController: UIViewController, ARSessionDelegate, ARTrackingD
         }
         
         // Create AR Metal view with transparent background
-        arMetalView = ARMetalView(
+        arMetalView = FlameMetalView(
             frame: view.bounds,
             device: device,
             session: arSession
@@ -125,12 +126,7 @@ class ARTrackingViewController: UIViewController, ARSessionDelegate, ARTrackingD
             ), renderOrder: 0
         )
         
-        // Setup renderer with Metal resources
-        guard let library = device.makeDefaultLibrary() else {
-            fatalError("Failed to load Metal library")
-        }
-        
-        imageTrackingRenderer.setup(device: device, library: library)
+        imageTrackingRenderer.setup(device: device)
         arMetalView.addRenderer(imageTrackingRenderer, order: 50)
     }
     
@@ -186,8 +182,8 @@ class ARTrackingViewController: UIViewController, ARSessionDelegate, ARTrackingD
             activeImageAnchors[imageAnchor.identifier] = imageAnchor
             
             // Option 1: Add a SceneKit node for visualization (optional)
-             let node = createNodeForImageAnchor(imageAnchor)
-             sceneView.scene.rootNode.addChildNode(node)
+//             let node = createNodeForImageAnchor(imageAnchor)
+//             sceneView.scene.rootNode.addChildNode(node)
             
             // Option 2: Update Metal renderer with the new image anchor
             if let renderer: ImageTrackingRenderer = arMetalView.getRenderer(id: "imageTracker") {

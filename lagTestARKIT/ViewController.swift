@@ -62,7 +62,7 @@ class ARTrackingViewController: UIViewController, ARSessionDelegate, ARTrackingD
         
         // Configure image tracking
         configuration.trackingImages = referenceImages
-        configuration.maximumNumberOfTrackedImages = 2
+        configuration.maximumNumberOfTrackedImages = 1
         
         // Store reference to tracked images
         trackedImages = Array(referenceImages)
@@ -187,7 +187,8 @@ class ARTrackingViewController: UIViewController, ARSessionDelegate, ARTrackingD
             
             // Option 2: Update Metal renderer with the new image anchor
             if let renderer: ImageTrackingRenderer = arMetalView.getRenderer(id: "imageTracker") {
-                renderer.trackImage(anchor: imageAnchor)
+                let renderable = ImageRenderable(uiImage: UIImage(named: imageAnchor.name ?? "")!)
+                renderer.trackImage(anchor: imageAnchor, renderable: renderable)
             }
         }
     }
